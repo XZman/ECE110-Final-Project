@@ -2,10 +2,12 @@
 #define RX 8
 #define TX 7
 
-#define LEFT_F 9
-#define LEFT_E 6
-#define RIGHT_F 5
-#define RIGHT_E 3
+#define LEFT_SPEED 9
+#define LEFT_F 12
+#define LEFT_E 13
+#define RIGHT_SPEED 5
+#define RIGHT_F 10
+#define RIGHT_E 11
 
 SoftwareSerial esp8266(RX, TX); 
 
@@ -13,14 +15,21 @@ String ipAddress = "192.168.43.1";
 int rmtPort = 23333;
 int rxPort = 11122;
 
-int countTrueCommand;
 int countTimeCommand; 
-boolean found = false; 
+bool found = false; 
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("Arduino online.");
+
+  pinMode(LEFT_F, OUTPUT);
+  pinMode(LEFT_E, OUTPUT);
+  pinMode(RIGHT_F, OUTPUT);
+  pinMode(RIGHT_E, OUTPUT);
+  
+  delay(500);
   esp8266.begin(115200);
-  delay(5000);
+  delay(2000);
   sendCommand("AT", 5, "OK");
   sendCmd("AT+CIFSR", 2000);
   sendCmd("AT+CWMODE=1",1000);
@@ -29,54 +38,50 @@ void setup() {
   sendCmd(String("AT+CIPSTART=\"UDP\",") + "\"" + ipAddress + "\"," + rmtPort + "," + rxPort + ",0", 1000);
 }
 
-int LFDC = 0;
-int LEDC = 0;
-int RFDC = 0;
-int REDC = 0;
-
 void loop() {
   esp8266.listen();
-  char leftSpeed = 0;
-  char rightSpeed = 0;
+  int leftSpeed = 0;
+  int rightSpeed = 0;
   if (esp8266.find(':')) {
-    leftSpeed = esp8266.read();
-    rightSpeed = esp8266.read();
+    leftSpeed = (int) esp8266.read();
+    rightSpeed = (int) esp8266.read();
     Serial.print("leftSpeed: ");
-    Serial.println((int)leftSpeed);
+    Serial.println(leftSpeed);
     Serial.print("rightSpeed: ");
-    Serial.println((int)rightSpeed);
+    Serial.println(rightSpeed);
 
-    LFDC = getLeftFrontDC((int)leftSpeed);
-    LEDC = getLeftEndDC((int)leftSpeed);
-    RFDC = getRightFrontDC((int)rightSpeed);
-    REDC = getRightEndDC((int)rightSpeed);
+    bool forward = getDirection(leftSpeed, rightSpeed);
+    if (forward) {
+      digitalWrite(LEFT_F, HIGH);
+      digitalWrite(LEFT_E, LOW);
+      digitalWrite(RIGHT_F, LOW);
+      digitalWrite(RIGHT_E, HIGH);
+    } else {
+      digitalWrite(LEFT_F, LOW);
+      digitalWrite(LEFT_E, HIGH);
+      digitalWrite(RIGHT_F, HIGH);
+      digitalWrite(RIGHT_E, LOW);
+    }
+
+    analogWrite(LEFT_SPEED, abs(leftSpeed));
+    analogWrite(RIGHT_SPEED, abs(rightSpeed));
   }
-  Serial.println(String("LF:") + LFDC + "\tLE:" + LEDC + "\tRF:" + RFDC + "\tRE:" + REDC);
-  analogWrite(LEFT_F, LFDC);
-  analogWrite(LEFT_E, LEDC);
-  analogWrite(RIGHT_F, RFDC);
-  analogWrite(RIGHT_E, REDC);
+
+  delay(50);
 }
 
-int getLeftFrontDC(int ls) {
-  return ls > 0 ? ls * 255 / 100: 0;
+// true for forward, false for backward
+inline bool getDirection(int leftSpd, int rightSpd) {
+  return leftSpd >= 0 && rightSpd >= 0;
 }
 
-int getLeftEndDC(int ls) {
-  return ls < 0 ? -ls * 255 / 100: 0;
-}
-
-int getRightFrontDC(int rs) {
-  return rs > 0 ? rs * 255 / 100: 0;
-}
-
-int getRightEndDC(int rs) {
-  return rs < 0 ? -rs * 255 / 100: 0;
+inline int abs(int x) {
+  return x >= 0 ? x : -x;
 }
 
 // !!!!! assume len < 2048 !!!!!
-void sendData(String s, int len, String ip, int port, int timeout) {
-}
+//void sendData(String s, int len, String ip, int port, int timeout) {
+//}
 
 String sendCmd(String cmd, int timeout) {
   String rx_str = "";
@@ -93,8 +98,7 @@ String sendCmd(String cmd, int timeout) {
 }
 
 void sendCommand(String command, int maxTime, char readReplay[]) {
-  Serial.print(countTrueCommand);
-  Serial.print(". at command => ");
+  Serial.print("AT command => ");
   Serial.print(command);
   Serial.print(" ");
   while(countTimeCommand < (maxTime*1))
@@ -116,14 +120,12 @@ void sendCommand(String command, int maxTime, char readReplay[]) {
   if(found == true)
   {
     Serial.println("OYI");
-    countTrueCommand++;
     countTimeCommand = 0;
   }
   
   if(found == false)
   {
     Serial.println("Fail");
-    countTrueCommand = 0;
     countTimeCommand = 0;
   }
   

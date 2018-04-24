@@ -60,7 +60,7 @@ public class MainActivity extends AppCompatActivity {
                         byte[] speedData = new byte[] {(byte) getLeftSpeed(), (byte) getRightSpeed()};
                         UDPClient.sendDatagram("192.168.43.16",11122, speedData, 10);
                         Log.i("sent", Arrays.toString(speedData));
-                        Thread.sleep(200);
+                        Thread.sleep(400);
                     } catch (Exception e) {
                         Log.e("send error", e.getMessage(), e.getCause());
                     }
