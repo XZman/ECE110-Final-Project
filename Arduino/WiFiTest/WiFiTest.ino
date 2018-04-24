@@ -40,31 +40,34 @@ void setup() {
 
 void loop() {
   esp8266.listen();
-  int leftSpeed = 0;
-  int rightSpeed = 0;
+  char lchar = 0;
+  char rchar = 0;
   if (esp8266.find(':')) {
-    leftSpeed = (int) esp8266.read();
-    rightSpeed = (int) esp8266.read();
+    lchar = esp8266.read();
+    rchar = esp8266.read();
+    int leftSpeed = (int) lchar;
+    int rightSpeed = (int) rchar;
     Serial.print("leftSpeed: ");
     Serial.println(leftSpeed);
     Serial.print("rightSpeed: ");
     Serial.println(rightSpeed);
 
     bool forward = getDirection(leftSpeed, rightSpeed);
+    Serial.println(forward);
     if (forward) {
       digitalWrite(LEFT_F, HIGH);
       digitalWrite(LEFT_E, LOW);
-      digitalWrite(RIGHT_F, LOW);
-      digitalWrite(RIGHT_E, HIGH);
+      digitalWrite(RIGHT_F, HIGH);
+      digitalWrite(RIGHT_E, LOW);
     } else {
       digitalWrite(LEFT_F, LOW);
       digitalWrite(LEFT_E, HIGH);
-      digitalWrite(RIGHT_F, HIGH);
-      digitalWrite(RIGHT_E, LOW);
+      digitalWrite(RIGHT_F, LOW);
+      digitalWrite(RIGHT_E, HIGH);
     }
 
-    analogWrite(LEFT_SPEED, abs(leftSpeed));
-    analogWrite(RIGHT_SPEED, abs(rightSpeed));
+    analogWrite(LEFT_SPEED, abs(leftSpeed) * 128 / 100);
+    analogWrite(RIGHT_SPEED, abs(rightSpeed)* 128 / 100);
   }
 
   delay(50);
