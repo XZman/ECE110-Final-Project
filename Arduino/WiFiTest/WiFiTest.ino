@@ -70,6 +70,7 @@ void loop() {
     analogWrite(RIGHT_SPEED, abs(rightSpeed)* 128 / 100);
   }
 
+  /* add other features here */
   delay(50);
 }
 
