@@ -92,7 +92,7 @@ void loop() {
 //  delayMicroseconds(1000); - Removed this line
   delayMicroseconds(10); // Added this line
   digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH,1000);
+  duration = pulseIn(echoPin, HIGH,5000);
   distance = (duration * 1.0 / 2) / 29.1;
   int r = 0,
       g = 0,
