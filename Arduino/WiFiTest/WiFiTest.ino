@@ -2,20 +2,18 @@
 #define RX 8
 #define TX 7
 
-// !!!!! TO-DO: assign appropriate pin numbers
-#define LEFT_SPEED 9
-#define LEFT_F 12
-#define LEFT_E 13
-#define RIGHT_SPEED 5
-#define RIGHT_F 10
-#define RIGHT_E 11
+#define LEFT_SPEED 11
+#define LEFT_F 2
+#define LEFT_E 4
+#define RIGHT_SPEED 10
+#define RIGHT_F 13
+#define RIGHT_E 9
 
 #define trigPin 12
-#define echoPin 13
+#define echoPin 0
 #define ledRed 3
 #define ledGreen 5
 #define ledBlue 6
-#define speaker 10
 
 SoftwareSerial esp8266(RX, TX); 
 
@@ -40,11 +38,10 @@ void setup() {
   pinMode(ledRed, OUTPUT);
   pinMode(ledGreen, OUTPUT);
   pinMode(ledBlue, OUTPUT);
-  pinMode(speaker, OUTPUT);
   
-  delay(500);
+  delay(50);
   esp8266.begin(115200);
-  delay(2000);
+  delay(50);
   sendCommand("AT", 5, "OK");
   sendCmd("AT+CIFSR", 2000);
   sendCmd("AT+CWMODE=1",1000);
@@ -58,6 +55,7 @@ void loop() {
   esp8266.listen();
   char lchar = 0;
   char rchar = 0;
+  bool forward = true;
   if (esp8266.find(':')) {
     lchar = esp8266.read();
     rchar = esp8266.read();
@@ -68,7 +66,7 @@ void loop() {
     Serial.print("rightSpeed: ");
     Serial.println(rightSpeed);
 
-    bool forward = getDirection(leftSpeed, rightSpeed);
+    forward = getDirection(leftSpeed, rightSpeed);
     Serial.println(forward);
     if (forward) {
       digitalWrite(LEFT_F, HIGH);
@@ -78,7 +76,7 @@ void loop() {
     } else {
       digitalWrite(LEFT_F, LOW);
       digitalWrite(LEFT_E, HIGH);
-      digitalWrite(RIGHT_F, LOW);
+      digitalWrite(RIGHT_F, LOW); 
       digitalWrite(RIGHT_E, HIGH);
     }
 
@@ -94,12 +92,11 @@ void loop() {
 //  delayMicroseconds(1000); - Removed this line
   delayMicroseconds(10); // Added this line
   digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH);
+  duration = pulseIn(echoPin, HIGH,1000);
   distance = (duration * 1.0 / 2) / 29.1;
   int r = 0,
       g = 0,
-      b = 0,
-      s = 0;
+      b = 0;
   bool stopMotor = false;
   if (20 <= distance && distance < 200) {
     r = -17 * distance / 12 + 850 / 3; 
@@ -115,7 +112,6 @@ void loop() {
     r = 255; 
     g = 0;
     b = 0;
-    s = -10 * distance + 200;
     stopMotor = true;
   }
   else if (distance >= 200 || distance <= 0) {
@@ -126,13 +122,12 @@ void loop() {
   analogWrite(ledRed, r);
   analogWrite(ledGreen, g);
   analogWrite(ledBlue, b);
-  analogWrite(speaker, s);
   
   Serial.print(distance);
   Serial.println(" cm");
   Serial.println(String(r) + " " + g + " " + b);
   
-  if (stopMotor) {
+  if (stopMotor && forward) {
     analogWrite(LEFT_SPEED, 0);
     analogWrite(RIGHT_SPEED, 0);
     Serial.println("Terrain. Engine stopped.");
