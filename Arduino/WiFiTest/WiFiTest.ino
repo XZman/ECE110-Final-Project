@@ -2,12 +2,20 @@
 #define RX 8
 #define TX 7
 
+// !!!!! TO-DO: assign appropriate pin numbers
 #define LEFT_SPEED 9
 #define LEFT_F 12
 #define LEFT_E 13
 #define RIGHT_SPEED 5
 #define RIGHT_F 10
 #define RIGHT_E 11
+
+#define trigPin 12
+#define echoPin 13
+#define ledRed 3
+#define ledGreen 5
+#define ledBlue 6
+#define speaker 10
 
 SoftwareSerial esp8266(RX, TX); 
 
@@ -26,6 +34,13 @@ void setup() {
   pinMode(LEFT_E, OUTPUT);
   pinMode(RIGHT_F, OUTPUT);
   pinMode(RIGHT_E, OUTPUT);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(ledRed, OUTPUT);
+  pinMode(ledGreen, OUTPUT);
+  pinMode(ledBlue, OUTPUT);
+  pinMode(speaker, OUTPUT);
   
   delay(500);
   esp8266.begin(115200);
@@ -39,6 +54,7 @@ void setup() {
 }
 
 void loop() {
+  /* wifi and motor control */
   esp8266.listen();
   char lchar = 0;
   char rchar = 0;
@@ -70,7 +86,58 @@ void loop() {
     analogWrite(RIGHT_SPEED, abs(rightSpeed)* 128 / 100);
   }
 
-  /* add other features here */
+  /* ultrasonic and LED control */
+  long duration, distance;
+  digitalWrite(trigPin, LOW);  // Added this line
+  delayMicroseconds(2); // Added this line
+  digitalWrite(trigPin, HIGH);
+//  delayMicroseconds(1000); - Removed this line
+  delayMicroseconds(10); // Added this line
+  digitalWrite(trigPin, LOW);
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration * 1.0 / 2) / 29.1;
+  int r = 0,
+      g = 0,
+      b = 0,
+      s = 0;
+  bool stopMotor = false;
+  if (20 <= distance && distance < 200) {
+    r = -17 * distance / 12 + 850 / 3; 
+    g = 255;
+    b = 0;
+  }   
+  else if (5 <= distance && distance < 20) {
+    r = 255; 
+    g = 17 * distance - 85;
+    b = 0;
+  }
+  else if (0 < distance && distance < 5) {
+    r = 255; 
+    g = 0;
+    b = 0;
+    s = -10 * distance + 200;
+    stopMotor = true;
+  }
+  else if (distance >= 200 || distance <= 0) {
+    Serial.println("Out of range");
+    r = b = 0;
+    g = 255;
+  }
+  analogWrite(ledRed, r);
+  analogWrite(ledGreen, g);
+  analogWrite(ledBlue, b);
+  analogWrite(speaker, s);
+  
+  Serial.print(distance);
+  Serial.println(" cm");
+  Serial.println(String(r) + " " + g + " " + b);
+  
+  if (stopMotor) {
+    analogWrite(LEFT_SPEED, 0);
+    analogWrite(RIGHT_SPEED, 0);
+    Serial.println("Terrain. Engine stopped.");
+  }
+  
   delay(50);
 }
 
