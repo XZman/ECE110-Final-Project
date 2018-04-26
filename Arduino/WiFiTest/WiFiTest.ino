@@ -10,10 +10,11 @@
 #define RIGHT_E 9
 
 #define trigPin 12
-#define echoPin 0
+#define echoPin A5
 #define ledRed 3
 #define ledGreen 5
 #define ledBlue 6
+#define speaker A4
 
 SoftwareSerial esp8266(RX, TX); 
 
@@ -38,6 +39,7 @@ void setup() {
   pinMode(ledRed, OUTPUT);
   pinMode(ledGreen, OUTPUT);
   pinMode(ledBlue, OUTPUT);
+  pinMode(speaker, OUTPUT);
   
   delay(50);
   esp8266.begin(115200);
@@ -92,11 +94,12 @@ void loop() {
 //  delayMicroseconds(1000); - Removed this line
   delayMicroseconds(10); // Added this line
   digitalWrite(trigPin, LOW);
-  duration = pulseIn(echoPin, HIGH,1000);
+  duration = pulseIn(echoPin, HIGH,100000);
   distance = (duration * 1.0 / 2) / 29.1;
   int r = 0,
       g = 0,
-      b = 0;
+      b = 0,
+      s = 0;
   bool stopMotor = false;
   if (20 <= distance && distance < 200) {
     r = -17 * distance / 12 + 850 / 3; 
@@ -113,6 +116,7 @@ void loop() {
     g = 0;
     b = 0;
     stopMotor = true;
+    s = 255;
   }
   else if (distance >= 200 || distance <= 0) {
     Serial.println("Out of range");
@@ -122,10 +126,11 @@ void loop() {
   analogWrite(ledRed, r);
   analogWrite(ledGreen, g);
   analogWrite(ledBlue, b);
+  analogWrite(speaker, s);
   
   Serial.print(distance);
   Serial.println(" cm");
-  Serial.println(String(r) + " " + g + " " + b);
+  Serial.println(String(r) + " " + g + " " + b + " " + s);
   
   if (stopMotor && forward) {
     analogWrite(LEFT_SPEED, 0);
